@@ -316,6 +316,8 @@
     let payment = 'Cargo a la habitación';
     let orderedBy = 'Huésped';
     let noPostRooms = [];
+    let noPostLoaded = false;
+    let noPostLoadFailed = false;
     let sending = false;
 
     const $ = id => document.getElementById(id);
@@ -553,16 +555,32 @@
     function renderSelections(){
       renderChoiceButtons('paxButtons',['1','2','3','4','5','+6'],pax,value => { pax = value; renderSelections(); });
       renderChoiceButtons('allergyButtons',['No tiene alergias','Sí tiene alergias'],allergy === 'No' ? 'No tiene alergias' : allergy === 'Sí' ? 'Sí tiene alergias' : '',value => { allergy = value.startsWith('No') ? 'No' : 'Sí'; renderSelections(); },null,'allergy');
-      renderChoiceButtons('paymentButtons',PAYMENT_OPTIONS,payment,value => { payment = value; updateNoPostUI(); },value => roomIsNoPost() && value === 'Cargo a la habitación','payment');
+      renderChoiceButtons('paymentButtons',PAYMENT_OPTIONS,payment,value => { payment = value; updateNoPostUI(); },value => roomChargeUnavailable() && value === 'Cargo a la habitación','payment');
       renderChoiceButtons('originButtons',ORIGIN_OPTIONS,orderedBy,value => { orderedBy = value; renderSelections(); },null,'origin');
       $('cashWrap').classList.toggle('show',payment === 'Efectivo a la entrega');
     }
 
     function roomIsNoPost(){ return noPostRooms.map(normalizeRoom).includes(normalizeRoom($('roomInput').value)); }
+    function roomChargeUnavailable(){
+      const hasRoom = Boolean($('roomInput').value.trim());
+      return roomIsNoPost() || (hasRoom && (!noPostLoaded || noPostLoadFailed));
+    }
     function updateNoPostUI(){
       const noPost = roomIsNoPost();
-      $('noPostWarning').classList.toggle('show',noPost);
-      if (noPost && payment === 'Cargo a la habitación') payment = 'Tarjeta a la entrega';
+      const hasRoom = Boolean($('roomInput').value.trim());
+      const unavailable = roomChargeUnavailable();
+      const warning = $('noPostWarning');
+      warning.classList.toggle('show',hasRoom && unavailable);
+      if (noPost) {
+        warning.textContent = currentLanguage === 'es'
+          ? 'Lamentablemente, esta habitación no tiene disponible el cargo a la habitación. Elige tarjeta o efectivo a la entrega.'
+          : 'Unfortunately, room charge is not available for this room. Please choose card or cash on delivery.';
+      } else if (hasRoom && !noPostLoaded) {
+        warning.textContent = noPostLoadFailed
+          ? (currentLanguage === 'es' ? 'No se ha podido verificar el cargo a la habitación. Elige tarjeta o efectivo a la entrega.' : 'Room charge could not be verified. Please choose card or cash on delivery.')
+          : (currentLanguage === 'es' ? 'Comprobando si la habitación permite cargos…' : 'Checking whether room charge is available…');
+      }
+      if (unavailable && payment === 'Cargo a la habitación') payment = 'Tarjeta a la entrega';
       renderSelections();
     }
     function updateRoomState(){
@@ -587,7 +605,7 @@
       if (!allergy) errors.push(labels.allergy);
       if (allergy === 'Sí' && !$('allergyDetail').value.trim()) errors.push(labels.allergyDetail);
       if (!payment) errors.push(labels.payment);
-      if (payment === 'Cargo a la habitación' && roomIsNoPost()) errors.push(labels.noPost);
+      if (payment === 'Cargo a la habitación' && roomChargeUnavailable()) errors.push(labels.noPost);
       if (payment === 'Efectivo a la entrega') {
         if (!$('cashInput').value.trim()) errors.push(labels.cash);
         else if (parseMoney($('cashInput').value) < total()) errors.push(labels.cashLow);
@@ -741,7 +759,18 @@
     $('guideModal').addEventListener('click',event => { if (event.target === $('guideModal')) $('guideModal').classList.remove('show'); });
 
     async function loadNoPostRooms(){
-      try { const response = await fetch(API_URL + '?action=noPost'); const data = await response.json(); if (data && data.ok && Array.isArray(data.rooms)) noPostRooms = data.rooms; updateNoPostUI(); } catch (error) { /* Si no responde, la validación local de habitaciones sigue activa. */ }
+      try {
+        const response = await fetch(API_URL + '?action=noPost&_=' + Date.now(),{cache:'no-store'});
+        const data = await response.json();
+        if (!response.ok || !data || !data.ok || !Array.isArray(data.rooms)) throw new Error((data && data.error) || 'NoPost no disponible');
+        noPostRooms = data.rooms.map(normalizeRoom).filter(Boolean);
+        noPostLoaded = true;
+        noPostLoadFailed = false;
+      } catch (error) {
+        noPostLoaded = false;
+        noPostLoadFailed = true;
+      }
+      updateNoPostUI();
     }
 
     openFirstSection(); applyLanguage(); loadNoPostRooms();

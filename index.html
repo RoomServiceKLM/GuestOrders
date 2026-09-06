@@ -198,8 +198,6 @@
     @media(max-width:1200px){.service-strip{display:none}.topbar__inner{grid-template-columns:auto 1fr}.guest-grid{grid-template-columns:1fr 1fr}.guest-grid .field-title-wrap{grid-column:1/-1}.tabs{grid-template-columns:repeat(3,1fr)}}
     @media(max-width:760px){body{padding-bottom:calc(180px + env(safe-area-inset-bottom))}.topbar__inner{display:flex;flex-direction:column;width:100%;padding:12px;gap:10px}.brand{width:100%;justify-content:center}.brand img{height:32px;max-width:46vw}.brand-title{font-size:13px;letter-spacing:1.2px;padding-left:10px}.top-actions{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.collection-btn{width:100%;min-width:0;white-space:normal;padding:9px 10px;font-size:9.5px}.language-switch{justify-self:end}.service-strip{display:none}.layout{width:100%;max-width:100%;padding:10px 8px 90px}.flow::after{height:180px}.menu-tools{padding:7px 8px;border-radius:12px}.tabs{width:100%;max-width:100%;gap:6px;margin-bottom:7px;padding:6px 0;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 126px;min-width:126px;padding:13px 5px 8px;font-size:10px}.tab small{font-size:8.5px;white-space:normal}.guest-grid,.two-col,.pay-grid,.origin-grid{grid-template-columns:1fr}.items{grid-template-columns:minmax(0,1fr)}.sections{padding:10px 8px 14px}.section__btn{padding:10px 9px;gap:7px;font-size:11px;letter-spacing:.7px}.section__meta{font-size:9px;padding:3px 6px}.wine-block-title{font-size:12px;letter-spacing:1.1px;margin-top:14px;padding:10px}.panel__head{align-items:flex-start;flex-direction:column}.brand__text{display:none}.cart-backdrop{align-items:flex-end}.summary{width:100%;max-width:100%;height:min(88vh,760px);border-left:0;border-radius:22px 22px 0 0;animation:cartUp .22s ease-out}.cart-dock{width:calc(100% - 16px);bottom:calc(9px + env(safe-area-inset-bottom));gap:8px;padding:9px 9px 9px 13px}.cart-dock__button{padding:11px 12px;font-size:11px}@keyframes cartUp{from{transform:translateY(45px);opacity:.65}to{transform:none;opacity:1}}}
   .staff-only{display:none!important}.wine-note{color:#111111;font-size:11px;margin-top:8px}
-    .item.restricted{opacity:.7;border-color:var(--danger)}
-    .restriction-note{background:var(--danger-soft);color:var(--danger);border-radius:8px;padding:8px 10px;font-size:11px;font-weight:700;margin-top:4px}
   </style>
 <base target="_blank">
 </head>
@@ -495,14 +493,14 @@
       const line = cart[key];
       const available = sectionAvailable(categoryKey,section);
       const restrictionMsg = itemRestrictionText(item);
-      const card = document.createElement('article'); card.className = 'item' + (Object.values(cart).some(x => x.id === item.id) ? ' in-cart' : '') + (!available ? ' unavailable' : '') ;
+      const card = document.createElement('article'); card.className = 'item' + (Object.values(cart).some(x => x.id === item.id) ? ' in-cart' : '') + (!available ? ' unavailable' : '');
       const missingRequired =
         Boolean(item.variant && item.variant.required && !item.variant.multi && selection.v1 === null) ||
         Boolean(item.variant && item.variant.multi && item.variant.minSelections && selection.mods.length < item.variant.minSelections) ||
         Boolean(item.variant2 && item.variant2.required && !item.variant2.multi && selection.v2 === null) ||
         Boolean(item.variant2 && item.variant2.multi && item.variant2.minSelections && selection.mods2.length < item.variant2.minSelections);
       card.dataset.unavailable = t('outOfHours');
-      card.innerHTML = '<div class="item__top"><div><h3>' + escapeHtml(item.name) + '</h3>' + (item.desc ? '<p class="desc">' + escapeHtml(item.desc) + '</p>' : '') + '</div><div class="price">' + displayPrice(item,selection) + '</div></div>' + allergenChips(item.alg) + (item.min ? '<div class="min-note">' + text('minOrder',{min:item.min}) + '</div>' : '') + (item.note ? '<div class="item-note">' + escapeHtml(item.note) + '</div>' : '') ;
+      card.innerHTML = '<div class="item__top"><div><h3>' + escapeHtml(item.name) + '</h3>' + (item.desc ? '<p class="desc">' + escapeHtml(item.desc) + '</p>' : '') + '</div><div class="price">' + displayPrice(item,selection) + '</div></div>' + allergenChips(item.alg) + (item.min ? '<div class="min-note">' + text('minOrder',{min:item.min}) + '</div>' : '') + (item.note ? '<div class="item-note">' + escapeHtml(item.note) + '</div>' : '');
       const first = renderVariant(item,item.variant,'v1','mods'); if (first) card.appendChild(first);
       const second = renderVariant(item,item.variant2,'v2','mods2'); if (second) card.appendChild(second);
       if (missingRequired) { const miss = document.createElement('div'); miss.className = 'missing'; miss.textContent = t('missingRequired'); card.appendChild(miss); }
@@ -810,7 +808,7 @@
     $('sendBtn').addEventListener('click',submitOrder);
     $('cartOpen').addEventListener('click',() => setCartOpen(true));
     $('cartClose').addEventListener('click',() => setCartOpen(false));
-    if ($('reviewOrderBtn')) $('reviewOrderBtn').addEventListener('click',() => { setCartOpen(true); $('cartSidebar').scrollIntoView({behavior:'smooth'}); });
+    if ($('reviewOrderBtn')) $('reviewOrderBtn').addEventListener('click',() => { setCartOpen(true); if (window.innerWidth > 1100 && $('cartSidebar')) $('cartSidebar').scrollIntoView({behavior:'smooth'}); });
     $('cartBackdrop').addEventListener('click',event => { if (event.target === $('cartBackdrop')) setCartOpen(false); });
     document.addEventListener('keydown',event => { if (event.key === 'Escape' && $('cartBackdrop').classList.contains('open')) setCartOpen(false); });
     $('newOrderBtn').addEventListener('click',resetOrder);

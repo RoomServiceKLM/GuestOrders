@@ -458,8 +458,19 @@
     function variantLine(variant, value, mods){ if (!variant) return ''; return variant.multi ? modsText(variant, mods || []) : (value === null || value === undefined ? '' : variant.options[value]); }
 
     function tick(){
+      const serviceKey = currentServiceKey();
+      const service = activeMenu()[serviceKey];
+
+      // Todos los indicadores de horario usan el mismo servicio activo.
+      // Así la tarjeta del hero cambia al mismo tiempo que la etiqueta
+      // superior y la pestaña marcada como AHORA/NOW.
       $('servicePill').textContent = serviceLabel();
-      $('clock').textContent = new Date().toLocaleTimeString(currentLanguage === 'en' ? 'en-GB' : 'es-ES',{hour:'2-digit',minute:'2-digit'});
+      $('currentServiceLabel').textContent = service.label;
+      $('currentServiceHours').textContent = service.hours || service.sub || '';
+      $('clock').textContent = new Date().toLocaleTimeString(
+        currentLanguage === 'en' ? 'en-GB' : 'es-ES',
+        {hour:'2-digit',minute:'2-digit'}
+      );
       buildTabs(false);
     }
     setInterval(tick,30000);
